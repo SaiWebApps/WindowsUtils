@@ -13,9 +13,9 @@ if (-Not $Duration) {
 }
 # If no icon is specified...
 if (-Not $IconSrc) {
-	[string]$IconSrc = "$pwd\ico\failure.ico"
+	[string]$IconSrc = "$PSScriptRoot\ico\failure.ico"
 	if ($SuccessIcon) {
-		$IconSrc = "$pwd\ico\success.ico"
+		$IconSrc = "$PSScriptRoot\ico\success.ico"
 	}
 }
 
