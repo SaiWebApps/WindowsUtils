@@ -12,8 +12,8 @@ if (!$(Test-Path $profileDir)) {
 [string]$PATH_DELIMITER = ";"
 
 [string]$TITLE = "Do you wish to"
-[array]$CHOICES = @("add items to the path?", "delete items from the path?", "sort the elements in the path?")
-[string]$PROMPT = "Enter 1, 2, or 3"
+[array]$CHOICES = @("add items to the path?", "delete items from the path?", "sort the elements in the path?", "update an item in the path?")
+[string]$PROMPT = "Enter 1, 2, 3, or 4"
 
 # Helper functions
 function GetPath
@@ -132,6 +132,29 @@ function SortPath
     . $profile
 }
 
+function UpdateItemInPath
+{
+    Param(
+        [Parameter(Mandatory=$True)]
+        [int]$Index,
+
+        [Parameter(Mandatory=$True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$NewValue
+    )
+
+    [List[string]]$fileList = $(GetListOfFilesInPath)
+    if ($Index -lt 0 -or $Index -ge $fileList.Count) {
+        return
+    }
+    $fileList.RemoveAt($Index)
+    $fileList.Insert($Index, $NewValue)
+
+    [string]$newPath = [String]::Join($PATH_DELIMITER, $fileList)
+    echo $('$env:Path="' + $newPath + '"') > $profile
+    . $profile
+}
+
 # Main
 echo "********BEFORE********"
 PrintFilesInPath
@@ -141,7 +164,7 @@ switch($addOrDeleteUserSelection)
 {
     $CHOICES[0] 
     {
-        [int]$addToSpecificIndex = Read-Host "Add to Index"
+        [int]$addToSpecificIndex = Read-Host "Add to index"
         [string]$pathsToAdd = Read-Host "Enter (semicolon-delimited) absolute path(s)"
         AddToPath -AppendStr $pathsToAdd -Index $($addToSpecificIndex - 1)
     }
@@ -154,6 +177,13 @@ switch($addOrDeleteUserSelection)
     }
 
     $CHOICES[2] { SortPath }
+
+    $CHOICES[3]
+    {
+        [int]$index = Read-Host "Update item at index"
+        [string]$newValue = Read-Host "Enter new value"
+        UpdateItemInPath -Index $($index - 1) -NewValue $newValue
+    }
 
     default { throw "Please press 1 or 2." }
 }
