@@ -5,7 +5,7 @@ using namespace System.Collections.Generic;
 # Create $profile dir if it doesn't exist.
 [string]$profileDir = [String]::Join("", $profile[0..$profile.LastIndexOf("\")])
 if (!$(Test-Path $profileDir)) {
-    md $profileDir
+    [void](md $profileDir)
 }
 
 # Constants
