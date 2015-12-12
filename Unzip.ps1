@@ -56,7 +56,9 @@ function Unzip
     # Clean-up files created by CopyHere.
     Push-Location
     cd $($Source.Substring(0, $Source.LastIndexOf('\')))
-    del 0
+    if (Test-Path "0") {
+        del 0
+    }
     Pop-Location
 }
 
