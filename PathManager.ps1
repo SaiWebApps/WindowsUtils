@@ -55,6 +55,17 @@ function PrintFilesInPath
     echo $("Files in Path:" + $filesInPathStr + "`n")
 }
 
+function WriteToProfile
+{
+    Param(
+        [List[string]]$NewListOfFiles
+    )
+
+    [string]$newPath = [String]::Join($PATH_DELIMITER, $(UniquifyFileList -FileList $NewListOfFiles))
+    echo $('$env:Path="' + $newPath + '"') > $profile
+    . $profile
+}
+
 function AddToPath
 {
 	Param(
@@ -62,58 +73,67 @@ function AddToPath
         [ValidateNotNullOrEmpty()]
         [string]$AppendStr,
 		
-        [int]$Index = -1
+        [int]$Index = -1,
+        [int]$IndexOffset = 1
 	)
 
-    [string]$newPath = $(GetPath) + ";" + $AppendStr
+    [List[string]]$fileList = GetListOfFilesInPath
+    [int]$numFilesInPath = $fileList.Count
 
-    # If a valid index was specified, then insert $AppendStr at that location.
-	if ($Index -ge 0 -and $Index -le $fileList.Count) {
-        [List[string]]$fileList = GetListOfFilesInPath
-		$fileList.Insert($Index, $AppendStr)
-        $newPath = [String]::Join($PATH_DELIMITER, $(UniquifyFileList -FileList $fileList))
-	}
+    # Adjust Index by IndexOffset, and verify that it's valid.
+    # If it is negative or greater than the number of files in the path,
+    # then it is out of bounds and is therefore invalid.
+    # In that case, set it to the number of files in the path, so that we
+    # add $AppendStr to the end of the current path.
+    $Index -= $IndexOffset
+    if ($Index -lt 0 -or $Index -gt $numFilesInPath) {
+        $Index = $numFilesInPath
+    }
 
-    echo $('$env:Path="' + $newPath + '"') > $profile
-    . $profile
+    $fileList.Insert($Index, $AppendStr)
+    WriteToProfile -NewListOfFiles $fileList
 }
 
 function DeleteElementFromPath
 {
 	Param(
-        [string]$Index,
-        [string]$TargetPathElement,
-        [int]$IndexOffset
+        [Parameter(Mandatory = $True)]
+        [ValidateNotNullOrEmpty()]
+        [string]$TargetPathElement
 	)
 
 	[List[string]]$fileList = GetListOfFilesInPath
-
-    [int]$indexVal = -1
-    [bool]$parsedIndexSuccessfully = [Int32]::TryParse($Index.Trim(), [ref] $indexVal)
-    $indexVal -= $IndexOffset
-    if ($indexVal -ge $IndexOffset -and $indexVal -lt $fileList.Count) {
-        $fileList.RemoveAt($indexVal)
-    }
-    if ($TargetPathElement -and $fileList.Contains($TargetPathElement)) {
+    if ($fileList.Contains($TargetPathElement)) {
     	$fileList.Remove($TargetPathElement)
     }
 
-	[string]$newPath = [String]::Join($PATH_DELIMITER, $fileList)
-    echo $('$env:Path="' + $newPath + '"') > $profile
-    . $profile
+	WriteToProfile -NewListOfFiles $fileList
 }
 
 function DeleteFromPath
 {
     Param(
         [string]$Indices,
-        [string]$TargetPathElements,
-        [int]$IndexOffset = 0
+        [int]$IndexOffset = 1,
+        [string]$TargetPathElements
     )
 
-    if ($Indices -and $IndexOffset) { 
-        $Indices.Split($PATH_DELIMITER) | % { 
-            DeleteElementFromPath -Index $_ -IndexOffset $IndexOffset 
+    [List[string]]$files = GetListOfFilesInPath
+    [int]$numFilesInPath = $files.Count
+
+    $Indices = $Indices.Trim()
+    $TargetPathElements = $TargetPathElements.Trim()
+
+    if ($Indices) {
+        $Indices.Split($PATH_DELIMITER) | ? {
+            [int]$temp = -1;
+            [bool]$parsedSuccessfully = [Int]::TryParse($_, [ref]$temp);
+            $temp -= $IndexOffset;
+            $parsedSuccessfully -and $temp -ge 0 -and $temp -lt $numFilesInPath
+        } | % {
+            [int]$index = [Int]::Parse($_) - $IndexOffset;
+            [string]$target = $files[$index];
+            DeleteElementFromPath -TargetPathElement $target
         }
     }
     if ($TargetPathElements) {
@@ -127,9 +147,7 @@ function SortPath
 {
     [List[string]]$fileList = $(GetListOfFilesInPath)
     $fileList.Sort()
-    [string]$newPath = [String]::Join($PATH_DELIMITER, $fileList)
-    echo $('$env:Path="' + $newPath + '"') > $profile
-    . $profile
+    WriteToProfile -NewListOfFiles $fileList
 }
 
 function UpdateItemInPath
@@ -166,14 +184,14 @@ switch($addOrDeleteUserSelection)
     {
         [int]$addToSpecificIndex = Read-Host "Add to index"
         [string]$pathsToAdd = Read-Host "Enter (semicolon-delimited) absolute path(s)"
-        AddToPath -AppendStr $pathsToAdd -Index $($addToSpecificIndex - 1)
+        AddToPath -AppendStr $pathsToAdd -Index $addToSpecificIndex
     }
 
     $CHOICES[1] 
     { 
         [string]$deleteFromIndices = Read-Host "Delete from index (or semicolon-delimited indices)"
         [string]$targetPaths = Read-Host "Delete (semicolon-delimited) path elements"
-        DeleteFromPath -TargetPathElement $targetPaths -Indices $deleteFromIndices -IndexOffset 1
+        DeleteFromPath -TargetPathElement $targetPaths -Indices $deleteFromIndices
     }
 
     $CHOICES[2] { SortPath }
