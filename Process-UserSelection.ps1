@@ -8,6 +8,9 @@
 	user selects multiple items, the user shall also specify a character-delimiter used
 	to distinguish each choice.
 
+    .PARAMETER AvailableChoices
+    The set of choices that the user can select from.
+
     .PARAMETER Title
     Heading to display before printing out the list of available choices.
 
