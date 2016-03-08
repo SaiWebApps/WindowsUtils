@@ -1,6 +1,6 @@
 # Imports
 using namespace System.Collections.Generic;
-. "$PSScriptRoot\ProcessUserSelection.ps1"
+. "$PSScriptRoot\Process-UserSelection.ps1"
 
 # Create $profile dir if it doesn't exist.
 [string]$profileDir = [String]::Join("", $profile[0..$profile.LastIndexOf("\")])

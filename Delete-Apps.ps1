@@ -53,7 +53,7 @@ Param(
 )
 
 # Imports
-. "$PSScriptRoot/ProcessUserSelection.ps1"
+. "$PSScriptRoot/Process-UserSelection.ps1"
 
 <#
     .SYNOPSIS
