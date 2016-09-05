@@ -61,4 +61,4 @@ if ($Command) {
 
 # Create a shortcut at $CreationPath. The shortcut will refer to 
 # $TargetPath (location of powershell.exe).
-& "$PSScriptRoot\CreateShortcut.ps1" -CreationPath $CreationPath -ShortcutName $Name -TargetPath $($PsHome + "\powershell.exe") -TargetArgs $Command
+& "$PSScriptRoot\Create-Shortcut.ps1" -CreationPath $CreationPath -ShortcutName $Name -TargetPath $($PsHome + "\powershell.exe") -TargetArgs $Command

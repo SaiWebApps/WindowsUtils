@@ -1,6 +1,6 @@
 <#
-	.SYNOPSIS
-	Creates a program shortcut at the specified location.
+    .SYNOPSIS
+    Creates a program shortcut at the specified location.
 
     .DESCRIPTION
     Given a CreationPath and a TargetPath, the Create-Shortcut function shall
@@ -8,7 +8,7 @@
     the CreationPath and TargetPath, it should also be able to handle TargetArgs,
     which will be passed to the program at TargetPath as command-line parameters.
 
-	.PARAMETER CreationPath
+    .PARAMETER CreationPath
     [Required, String]
     Specifies the location at which the new shortcut should be created.
     If the CreationPath does not exist, then throw a System.IO.IOException.
@@ -50,7 +50,7 @@
 #>
 [CmdletBinding(DefaultParameterSetName = 'Default')]
 Param(
-	[Parameter(Mandatory=$True)]
+    [Parameter(Mandatory=$True)]
     [string]
     [ValidateScript({
         if (!(Test-Path $_)) { 
@@ -85,21 +85,46 @@ Param(
     $TargetArgs
 )
 
-function GetLocationOfNewShortcut
-{
-    [string]$ext = ".lnk"
-    if ($ExtIsDotUrl) {
-        $ext = ".url"
-    }
-    return $CreationPath.Trim("\") + "\" + $ShortcutName.Trim(".url").Trim(".lnk") + $ext
+[string]$Ext = ".lnk"
+if ($ExtIsDotUrl) {
+    $Ext = ".url"
 }
 
+<#
+    .SYNOPSIS
+    Return the absolute path of the location where the shortcut will be created.
+
+    .DESCRIPTION
+    Account for the following:
+    1. User may have added a "\" at the end of CreationPath.
+    2. User may have added ".url" or ".lnk" extension to ShortcutName.
+    Then, concatenate the reformatted CreationPath, ShortcutName, and Ext.
+#>
+function GetLocationOfNewShortcut
+{
+    # If the name already ends in ".lnk" or ".url" (shortcut extensions),
+    # then remove the extension since we're going to be appending it anyway.
+    [int]$lastDotIndex = $ShortcutName.LastIndexOf(".")
+    if ($lastDotIndex -ne -1) {
+        [string]$currentExt = $ShortcutName.Substring($lastDotIndex)
+        if (($currentExt -eq ".lnk") -or ($currentExt -eq ".url")) {
+            $ShortcutName = $ShortcutName.Substring(0, $lastDotIndex)            
+        }
+    }
+
+    # Remove trailing "\" from CreationPath.
+    $CreationPath = $CreationPath.Trim("\");
+
+    return $CreationPath + "\" + $ShortcutName + $Ext
+}
+
+# Create the shortcut according to the specified config params.
 $WshShell = New-Object -comObject WScript.Shell
 $Shortcut = $WshShell.CreateShortcut($(GetLocationOfNewShortcut))
 $Shortcut.TargetPath = $TargetPath # New shortcut will point to $TargetPath.
 if ($TargetArgs) {
-	# User specified that program at $TargetPath should be invoked with the 
+    # User specified that program at $TargetPath should be invoked with the 
     # arguments $TargetArgs.
-	$Shortcut.Arguments = $TargetArgs
+    $Shortcut.Arguments = $TargetArgs
 }
 $Shortcut.Save()
